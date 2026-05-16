@@ -1,0 +1,8 @@
+{
+  "name": "EZStep PH - Custom Insoles",
+  "description": "EZStep PH: 3D custom insole technology featuring VOXELCARE Spain engineering, AI-powered biomechanical pain analysis, and same-day fabrication.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
