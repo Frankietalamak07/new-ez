@@ -25,8 +25,15 @@ import {
 import { ThreeHero } from './components/ThreeHero';
 import { InsoleShowcase } from './components/InsoleShowcase';
 import { PainSelector } from './components/PainSelector';
+import { OrthoticVisualizerMachine } from './components/OrthoticVisualizerMachine';
 import { Logo } from './components/Logo';
 import { SplashScreen } from './components/SplashScreen';
+import { BlogSection } from './components/BlogSection';
+import { TheDifferenceSection } from './components/TheDifferenceSection';
+
+import { BranchModal } from './components/BranchModal';
+import { LiquidCursor } from './components/LiquidCursor';
+import { MissionVisionSection } from './components/MissionVisionSection';
 
 const PRODUCTS = [
   {
@@ -63,6 +70,7 @@ const BRANCHES = [
     name: 'ONE AYALA', 
     mall: 'Ayala Malls',
     loc: '3/L, One Ayala Malls', 
+    fullAddress: '3rd Level, One Ayala Malls, Ayala Ave cor. EDSA, Makati City',
     icon: '🏢', 
     phone: '+63 995 032 2139',
     hours: '11 AM - 9 PM',
@@ -72,6 +80,7 @@ const BRANCHES = [
     name: 'SM MALL OF ASIA', 
     mall: 'North Entertainment Mall',
     loc: '2/L, North Entertainment Mall', 
+    fullAddress: '2nd Level, North Entertainment Mall (Near IMAX), SM Mall of Asia, Pasay City',
     icon: '🌊', 
     phone: '+63 926 969 6758',
     hours: '11 AM - 9 PM',
@@ -81,6 +90,7 @@ const BRANCHES = [
     name: 'SM NORTH ANNEX', 
     mall: 'SM City North EDSA',
     loc: '2/L, SM City North EDSA Annex 1', 
+    fullAddress: '2nd Level, SM City North EDSA Annex 1 (Near Cyberzone), Quezon City',
     icon: '⭐', 
     phone: '+63 995 032 2139',
     hours: '11 AM - 9 PM',
@@ -96,9 +106,11 @@ const SOCIALS = {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedBranch, setSelectedBranch] = useState<any>(null);
 
   return (
     <div className="font-sans text-slate-900 bg-white min-h-screen relative">
+      <LiquidCursor />
       <AnimatePresence mode="wait">
         {isLoading ? (
           <SplashScreen key="splash" onComplete={() => setIsLoading(false)} />
@@ -109,6 +121,7 @@ export default function App() {
             animate={{ opacity: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}
           >
+            <BranchModal branch={selectedBranch} onClose={() => setSelectedBranch(null)} />
             <header>
               {/* Announcement Bar - Medical Alert Style */}
               <div className="fixed top-0 left-0 right-0 z-[60] bg-clinic-navy text-white py-2 px-6 text-center">
@@ -129,6 +142,7 @@ export default function App() {
                       { n: 'Clinical Tech', h: '#technology' },
                       { n: 'Pain Guide', h: '#pain-guide' },
                       { n: 'Devices', h: '#products' },
+                      { n: 'Blog', h: '#blog' },
                       { n: 'Clinic Locations', h: '#branches' }
                     ].map((item) => (
                       <motion.a 
@@ -174,16 +188,17 @@ export default function App() {
               </nav>
             </header>
 
-      <main>
+      <main className="relative">
         {/* Hero Section - Pure Clinical Precision */}
         <section id="hero" className="relative min-h-screen flex items-center pt-32 lg:pt-40 overflow-hidden bg-white">
         <ThreeHero />
         
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 xl:gap-24 2xl:gap-32 items-center relative z-10 py-20 lg:py-32">
           <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
             className="space-y-8"
           >
             <div className="inline-flex items-center gap-2 bg-clinic-blue/5 border border-clinic-blue/10 px-4 py-2 rounded-full">
@@ -191,22 +206,37 @@ export default function App() {
               <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-clinic-blue">Bio-Orthopedic Manufacturing Excellence</span>
             </div>
             
-            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-[7.5rem] font-black leading-[0.9] text-clinic-navy tracking-tighter">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+              className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-[7.5rem] font-black leading-[0.95] md:leading-[0.9] text-clinic-navy tracking-tighter"
+            >
               PRECISION <br />
               <span className="text-clinic-blue italic">ALIGNMENT.</span><br />
               ZERO PAIN.
-            </h1>
+            </motion.h1>
 
-            <div className="space-y-4">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+              className="space-y-4"
+            >
               <p className="text-slate-600 max-w-lg text-xl md:text-2xl leading-relaxed font-serif italic">
                 EZStep Clinical Orthotics transforms bio-data into therapeutic relief.
               </p>
               <p className="text-slate-400 max-w-lg text-xs md:text-sm font-bold uppercase tracking-[0.3em]">
                 Experience our <span className="text-clinic-blue">Free Foot Scan & Consultation</span> available at all branches.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="flex flex-wrap gap-4 pt-4">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+              className="flex flex-wrap gap-4 pt-4"
+            >
               <a href="#branches">
                 <motion.button 
                   whileHover={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
@@ -225,7 +255,7 @@ export default function App() {
                   Our Methodology
                 </motion.button>
               </a>
-            </div>
+            </motion.div>
           </motion.div>
 
           <motion.div 
@@ -240,106 +270,71 @@ export default function App() {
         </div>
       </section>
 
-      {/* Trust & Comparison */}
-      <section className="py-24 px-6 bg-slate-50/50 border-y border-slate-100">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-12">
-          {[
-            { t: 'Why Clinical?', d: 'Generic retail insoles are for comfort. Clinical orthotics are for corrections. We address the root cause of your foot, knee, and back pain.' },
-            { t: 'VOXELCARE Platform', d: 'Automated 3D scanning from Spain ensures 100% accuracy — eliminating the human error found in manual gait analysis.' },
-            { t: 'Same-Day Correction', d: 'Why wait weeks for shipping? Our on-site labs at SM Malls produce your medical-grade orthotics in under 60 minutes.' }
-          ].map((item, i) => (
-            <motion.div 
-              key={i} 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 0.6 }}
-              className="space-y-4 p-8 medical-card"
-            >
-              <h3 className="font-display font-black text-xl text-clinic-navy uppercase tracking-tight">{item.t}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">{item.d}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <div id="technology" role="region" aria-label="Clinical Technology">
+      <div id="technology" role="region" aria-label="Clinical Technology" className="relative">
         <motion.div
-           initial={{ opacity: 0 }}
-           whileInView={{ opacity: 1 }}
-           viewport={{ once: true, margin: "-100px" }}
+           initial={{ opacity: 0, y: 100 }}
+           whileInView={{ opacity: 1, y: 0 }}
+           viewport={{ once: true, margin: "-200px" }}
+           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
         >
           <TechnologySection />
         </motion.div>
       </div>
 
-      <motion.div
-         initial={{ opacity: 0 }}
-         whileInView={{ opacity: 1 }}
-         viewport={{ once: true, margin: "-100px" }}
-      >
-        <ClinicalShowcase />
-      </motion.div>
+      <TheDifferenceSection />
 
-      {/* Pain Analysis - THE CLINICAL INTERFACE */}
-      <motion.section 
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        id="pain-guide" 
-        aria-label="Pain Condition Selector"
-        className="py-32 px-6 bg-slate-950 overflow-hidden relative"
-      >
+      <MissionVisionSection />
+
+      <BlogSection />
+
+      {/* Pain Analysis - VIRTUAL SPECIALIST INTERFACE */}
+          <motion.div 
+            initial={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+            id="pain-guide" 
+            aria-label="Virtual Orthotic Specialist"
+            className="py-32 px-6 bg-slate-950 overflow-hidden relative"
+          >
+        {/* Animated Background Mesh */}
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,229,255,0.05),transparent_70%)]" />
+        </div>
+
         <div 
           className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" 
-          style={{ color: '#254cae', borderColor: '#254ab9' }}
         />
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-20 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center px-4 py-1.5 bg-clinic-blue/10 text-clinic-blue border border-clinic-blue/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
-                Biomechanical Analysis
-              </div>
-              <h2 className="font-display text-5xl md:text-6xl font-black text-white uppercase leading-[0.9] tracking-tight">
-                SELECT YOUR <br />
-                <span className="text-clinic-cyan italic font-serif lowercase">Condition</span>
-              </h2>
-              <p className="text-slate-400 text-lg md:text-xl font-serif italic leading-relaxed">
-                Click on the pain zones to understand how medical-grade customization targets specific musculoskeletal imbalances.
-              </p>
-              <PainSelector />
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="text-center mb-20 space-y-6"
+          >
+            <div className="inline-flex items-center px-4 py-1.5 bg-clinic-blue/10 text-clinic-blue border border-clinic-blue/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
+              Proprietary Diagnostic Engine
             </div>
-            
-            <div className="relative group">
-              <div className="absolute -inset-20 bg-clinic-blue/20 blur-[120px] rounded-full opacity-30 group-hover:opacity-50 transition-opacity" />
-              <div className="medical-card p-12 lg:p-20 relative text-center space-y-8 bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl overflow-hidden" style={{ backgroundColor: '#000005' }}>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-clinic-blue/10 blur-3xl rounded-full -mr-16 -mt-16" />
-                <div className="w-24 h-24 bg-clinic-blue/20 rounded-full flex items-center justify-center mx-auto mb-8 relative z-10">
-                  <CreditCard className="w-10 h-10 text-clinic-cyan" />
-                </div>
-                <h3 className="font-display text-3xl font-black text-white uppercase tracking-tight relative z-10" style={{ marginBottom: '19px', paddingRight: '6px' }}>100% PERSONALIZED</h3>
-                <p className="text-slate-300 text-base md:text-lg leading-relaxed max-w-xs mx-auto font-serif italic relative z-10">
-                  "We don't scale sizes. We calibrate density to your exact biomechanical profile."
-                </p>
-                <div className="pt-8 grid grid-cols-2 gap-4 relative z-10">
-                  <div className="relative bg-gradient-to-br from-clinic-blue/20 to-slate-900/40 p-5 rounded-2xl border border-clinic-blue/20 flex flex-col items-center justify-center overflow-hidden group shadow-lg">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-clinic-blue to-transparent" />
-                    <div className="text-lg font-black text-white tracking-tight relative z-10">Same Day</div>
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-clinic-cyan font-black relative z-10 opacity-80">On-Site Ready</div>
-                    <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-clinic-blue/20 blur-xl rounded-full group-hover:scale-150 transition-transform" />
-                  </div>
-                  <div className="relative bg-gradient-to-br from-clinic-cyan/10 to-slate-900/40 p-5 rounded-2xl border border-clinic-cyan/10 flex flex-col items-center justify-center overflow-hidden group shadow-lg">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-clinic-cyan to-transparent" />
-                    <div className="text-lg font-black text-white tracking-tight relative z-10">Medical</div>
-                    <div className="text-[9px] uppercase tracking-[0.2em] text-clinic-blue font-black relative z-10 opacity-80">Grade Quality</div>
-                    <div className="absolute -bottom-4 -right-4 w-12 h-12 bg-clinic-cyan/20 blur-xl rounded-full group-hover:scale-150 transition-transform" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            <h2 className="font-display text-5xl md:text-7xl font-black text-white uppercase leading-[0.9] tracking-tight">
+              VIRTUAL ORTHOTIC <br />
+              <span className="text-clinic-cyan italic font-serif lowercase">Specialist</span>
+            </h2>
+            <p className="text-slate-400 text-lg md:text-xl font-serif italic leading-relaxed max-w-2xl mx-auto">
+              "Your pain has a fingerprint. Standard solutions ignore the biometric data. Our Spain-engineered engine transforms your specific pain markers into clinical-grade therapeutic armor."
+            </p>
+          </motion.div>
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 50 }}
+            whileInView={{ opacity: 1, scale: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <OrthoticVisualizerMachine />
+          </motion.div>
         </div>
-      </motion.section>
+      </motion.div>
 
       {/* Advanced Devices - THE PRODUCT LINEUP */}
       <motion.section 
@@ -356,14 +351,29 @@ export default function App() {
             <p className="text-slate-500 max-w-2xl mx-auto font-medium">Precisely calibrated orthotic systems for various lifestyle and clinical requirements.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <motion.div 
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.15
+                }
+              }
+            }}
+            className="grid md:grid-cols-3 gap-8"
+          >
             {PRODUCTS.map((prod, i) => (
               <motion.div 
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1, duration: 0.8 }}
+                variants={{
+                  hidden: { opacity: 0, y: 50, scale: 0.95, filter: 'blur(10px)' },
+                  show: { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
+                }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                 whileHover={{ y: -10 }}
                 className="medical-card p-0 flex flex-col group h-full overflow-hidden"
               >
@@ -380,7 +390,7 @@ export default function App() {
                   />
                 </div>
                 
-                <div className="p-10 space-y-6 flex-1 flex flex-col">
+                <div className="p-6 sm:p-10 space-y-6 flex-1 flex flex-col">
                   <div className="space-y-6 flex-1">
                     <div className="flex justify-between items-start">
                       <div className="inline-block px-3 py-1 bg-clinic-blue/5 border border-clinic-blue/10 rounded-full text-[9px] font-bold text-clinic-blue tracking-[0.2em] uppercase">
@@ -390,18 +400,18 @@ export default function App() {
                     </div>
                     
                     <div className="space-y-1">
-                      <h3 className="font-display text-2xl font-black text-clinic-navy group-hover:text-clinic-blue transition-colors uppercase tracking-tight">{prod.title}</h3>
+                      <h3 className="font-display text-xl sm:text-2xl font-black text-clinic-navy group-hover:text-clinic-blue transition-colors uppercase tracking-tight">{prod.title}</h3>
                       <p className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">{prod.type}</p>
                     </div>
 
-                    <p className="text-sm text-slate-500 leading-relaxed font-medium">{prod.desc}</p>
+                    <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-medium">{prod.desc}</p>
                     
                     <div className="flex flex-wrap gap-2 pt-2">
                       {prod.tags.map(t => <span key={t} className="text-[9px] font-extrabold uppercase tracking-widest px-3 py-1 bg-slate-100 rounded-md text-slate-500 border border-slate-200/50">{t}</span>)}
                     </div>
                   </div>
 
-                  <div className="pt-8 mt-8 border-t border-slate-100 flex items-center justify-between">
+                  <div className="pt-6 sm:pt-8 mt-6 sm:mt-8 border-t border-slate-100 flex items-center justify-between">
                     <div className="font-display font-black text-clinic-navy">{prod.price}</div>
                     <button className="bg-clinic-blue text-white w-10 h-10 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg shadow-clinic-blue/20">
                       <ArrowRight className="w-5 h-5" />
@@ -410,15 +420,16 @@ export default function App() {
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </motion.section>
 
       {/* TENS Massager - CLINICAL RECOVERY UNIT */}
       <motion.section 
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
+        initial={{ opacity: 0, y: 100 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-150px" }}
+        transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         className="py-24 px-6 bg-white overflow-hidden relative"
       >
         <div className="max-w-7xl mx-auto">
@@ -427,7 +438,7 @@ export default function App() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            className="relative medical-card !bg-clinic-navy p-12 lg:p-24 overflow-hidden border-none text-white flex flex-col lg:flex-row items-center gap-20 shadow-[0_50px_100px_rgba(0,0,0,0.3)]"
+            className="relative medical-card !bg-clinic-navy p-8 sm:p-12 lg:p-24 overflow-hidden border-none text-white flex flex-col lg:flex-row items-center gap-12 lg:gap-20 shadow-[0_50px_100px_rgba(0,0,0,0.3)]"
           >
             <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-clinic-blue/10 blur-[150px] -z-1 rounded-full" />
             
@@ -436,14 +447,14 @@ export default function App() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.8 }}
-              className="flex-1 space-y-8 z-10 text-center lg:text-left"
+              className="flex-1 space-y-6 md:space-y-8 z-10 text-center lg:text-left"
             >
               <div className="inline-flex items-center gap-2 text-clinic-cyan font-bold text-xs uppercase tracking-[0.3em]">
                 <Zap className="w-4 h-4" /> Systemic Recovery Unit
               </div>
-              <h2 className="font-display text-5xl md:text-7xl font-black leading-[1] uppercase">TENS M2<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-clinic-blue to-clinic-cyan">RELIEF PLATFORM</span></h2>
-              <p className="text-slate-400 text-lg leading-relaxed max-w-md font-medium">The intersection of physiotherapy and at-home recovery. Our TENS platform delivers targeted therapeutic electrical stimulation for deep tissue fatigue.</p>
-              <button className="bg-white text-clinic-navy font-black px-12 py-5 uppercase tracking-widest text-xs rounded-2xl hover:bg-clinic-cyan transition-all shadow-2xl active:scale-95">
+              <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-black leading-[1] uppercase">TENS M2<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-clinic-blue to-clinic-cyan">RELIEF PLATFORM</span></h2>
+              <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-md font-medium mx-auto lg:mx-0">The intersection of physiotherapy and at-home recovery. Our TENS platform delivers targeted therapeutic electrical stimulation for deep tissue fatigue.</p>
+              <button className="bg-white text-clinic-navy font-black px-10 py-4 md:px-12 md:py-5 uppercase tracking-widest text-xs rounded-2xl hover:bg-clinic-cyan transition-all shadow-2xl active:scale-95">
                 Clinical Trial →
               </button>
             </motion.div>
@@ -481,122 +492,67 @@ export default function App() {
       </motion.section>
 
       {/* Testimonials - THE CLINICAL PROOF */}
-      <section className="py-32 px-6 bg-white">
-        <div className="max-w-7xl mx-auto space-y-20">
+      <section className="py-32 px-6 bg-white overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(0,98,255,0.03),transparent_40%)]" />
+        <div className="max-w-7xl mx-auto space-y-20 relative z-10">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
+            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             viewport={{ once: true }}
             className="text-center space-y-4"
           >
-             <div className="inline-flex items-center px-4 py-2 bg-clinic-blue/5 text-clinic-blue border border-clinic-blue/20 rounded-full text-[10px] font-bold uppercase tracking-widest mx-auto">Case Studies</div>
-             <h2 className="font-display text-4xl font-black text-clinic-navy uppercase">CLINICALLY VERIFIED RESULTS</h2>
+             <div className="inline-flex items-center px-4 py-2 bg-clinic-blue/5 text-clinic-blue border border-clinic-blue/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mx-auto">Clients Testimony</div>
+             <h2 className="font-display text-5xl md:text-6xl font-black text-clinic-navy uppercase tracking-tight">CLINICALLY <span className="text-clinic-blue">VERIFIED</span> RESULTS</h2>
+             <p className="text-slate-500 font-medium max-w-2xl mx-auto italic">Peer-reviewed outcomes from real individuals who transitioned from chronic pain to optimized clinical alignment.</p>
           </motion.div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <motion.div 
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.15
+                }
+              }
+            }}
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
             {[
-              { n: 'Jerome D.', r: 'Athlete', t: '"The clinical precision is unmatched. Reduced my PR fatigue instantly."', i: '👟' },
-              { n: 'Vince G.', r: 'Field Specialist', t: '"Finally, a solution that doesn\'t just pad the foot but actually aligns the gait."', i: '🚶' },
-              { n: 'Angel M.', r: 'Medical Prof.', t: '"Corrected my flat feet biomechanics where others failed. 5-star clinical care."', i: '🏥' }
-            ].map((caseStudy, i) => (
+              { n: 'Jerome D.', r: 'Professional Athlete', t: "The clinical precision is unmatched. I transitioned from chronic plantar fasciitis to hitting my PRs again within weeks. Real science, real comfort.", i: '👟' },
+              { n: 'Vince G.', r: 'Field Specialist', t: "Finally, a solution that doesn't just pad the foot but actually aligns the gait. My back pain disappeared after a decade of searching for answers.", i: '🚶' },
+              { n: 'Angel M.', r: 'Medical Surgeon', t: "As someone on their feet for 12 hours, the biomechanical correction is vital. EZStep corrected my flat feet where generic inserts failed.", i: '🏥' },
+              { n: 'Sophia R.', r: 'Fitness Instructor', t: "The data-driven approach changed how I move. I can feel the energy return in every step. It's a complete postural upgrade.", i: '⚡' },
+              { n: 'Marcus K.', r: 'Retail Manager', t: "Standing all day used to be a nightmare. Now, it's effortless. The durability of the clinical materials is what sets them apart.", i: '🛡️' }
+            ].map((testimony, i) => (
               <motion.div 
                 key={i} 
-                initial={{ opacity: 0, scale: 0.95 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="medical-card p-10 flex flex-col h-full bg-slate-50/30 border-none shadow-none hover:bg-white hover:shadow-2xl transition-all"
+                variants={{
+                  hidden: { opacity: 0, scale: 0.9, y: 30, filter: 'blur(10px)' },
+                  show: { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }
+                }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                className="medical-card p-10 flex flex-col h-full bg-slate-50/10 border border-slate-100 hover:bg-white hover:shadow-2xl hover:border-clinic-blue/20 transition-all duration-500 group"
               >
-                <div className="text-3xl mb-6">{caseStudy.i}</div>
-                <p className="text-slate-600 font-medium italic leading-[1.8] flex-1">"{caseStudy.t}"</p>
-                <div className="pt-8 mt-8 border-t border-slate-100 flex items-center gap-4">
-                   <div className="w-10 h-10 bg-clinic-navy rounded-full flex items-center justify-center font-bold text-white text-[10px]">{caseStudy.n[0]}</div>
+                <div className="text-3xl mb-8 transform group-hover:scale-110 transition-transform duration-500">{testimony.i}</div>
+                <p className="text-slate-600 font-medium italic leading-[1.8] flex-1">"{testimony.t}"</p>
+                <div className="pt-8 mt-10 border-t border-slate-100 flex items-center gap-4">
+                   <div className="w-12 h-12 bg-gradient-to-br from-clinic-navy to-slate-800 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-lg group-hover:from-clinic-blue transition-all">
+                    {testimony.n.split(' ')[0][0]}{testimony.n.split(' ')[1][0]}
+                   </div>
                    <div>
-                     <div className="font-bold text-clinic-navy text-xs uppercase tracking-widest">{caseStudy.n}</div>
-                     <div className="text-[10px] text-slate-400 font-bold uppercase">{caseStudy.r}</div>
+                     <div className="font-black text-clinic-navy text-[11px] uppercase tracking-widest">{testimony.n}</div>
+                     <div className="text-[9px] text-clinic-blue font-black uppercase tracking-widest mt-1 opacity-70">{testimony.r}</div>
                    </div>
                 </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
-
-      {/* Performance & Transformation Journey */}
-      <motion.section 
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        className="py-32 px-6 bg-slate-50 relative overflow-hidden"
-      >
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(0,98,255,0.05),transparent_50%)]" />
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-24 space-y-4">
-            <h2 className="font-display text-5xl font-black text-clinic-navy uppercase tracking-tighter">THE CLINICAL JOURNEY</h2>
-            <p className="text-slate-400 font-bold uppercase tracking-[0.3em] text-[10px]">From Diagnostic Scan to Permanent Relief</p>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-8 md:gap-12 relative px-4 md:px-0">
-            <div className="hidden lg:block absolute top-[40%] left-0 w-full h-px bg-slate-200 -z-0" />
-            
-            {[
-              { 
-                step: "01", 
-                title: "FREE VOXEL SCAN", 
-                desc: "Complimentary digital analysis assessing your arch type, weight distribution, and 25,000 pressure points for total mechanical mapped precision.",
-                img: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=800", // Diagnostic Scan
-                icon: <PremiumFootScan className="w-6 h-6" />
-              },
-              { 
-                step: "02", 
-                title: "PRECISION MILLING", 
-                desc: "Medical-grade EVA units are sculpted using CAD/CAM engineering to meet your prescribed therapeutic alignment requirements.",
-                img: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&q=80&w=800", // Precision lab
-                icon: <PremiumPulse className="w-6 h-6" />
-              },
-              { 
-                step: "03", 
-                title: "INSTANT COMFORT", 
-                desc: "Experience immediate correction. Your gait is re-balanced, eliminating chronic pain in feet, knees, and lower back.",
-                img: "https://images.unsplash.com/photo-1434493907317-a46b53b81844?auto=format&fit=crop&q=80&w=800", // Active relief/walking
-                icon: <PremiumAlignment className="w-6 h-6" />
-              }
-            ].map((node, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.2 }}
-                className="bg-white p-2 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.06)] border border-slate-100 relative group z-10 hover:-translate-y-2 transition-transform duration-500"
-              >
-                <div className="relative h-64 md:h-72 rounded-[2rem] overflow-hidden">
-                   <img 
-                    src={node.img} 
-                    alt={node.title} 
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                    referrerPolicy="no-referrer" 
-                   />
-                   <div className="absolute inset-0 bg-gradient-to-t from-clinic-navy/80 to-transparent opacity-60" />
-                   <div className="absolute top-6 left-6 w-10 h-10 md:w-12 md:h-12 bg-white rounded-2xl flex items-center justify-center font-display font-black text-clinic-navy text-sm md:text-base shadow-lg">
-                      {node.step}
-                   </div>
-                </div>
-                <div className="p-6 md:p-10 space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-clinic-bg flex items-center justify-center border border-slate-100 shadow-sm group-hover:bg-clinic-blue group-hover:text-white transition-all">
-                      {node.icon}
-                    </div>
-                    <h3 className="font-display font-black text-lg md:text-xl text-clinic-navy uppercase leading-none tracking-tight">{node.title}</h3>
-                  </div>
-                  <p className="text-slate-500 text-xs md:text-sm leading-relaxed font-medium">{node.desc}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </motion.section>
 
       {/* Locations - THE CLINIC NETWORK */}
       <motion.section 
@@ -613,15 +569,32 @@ export default function App() {
             <p className="text-slate-500 text-lg font-medium max-w-2xl mx-auto">Visit us at these premium locations for a complimentary digital gait analysis and personalized orthotic consultation.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <motion.div 
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: {
+                  staggerChildren: 0.2
+                }
+              }
+            }}
+            className="grid md:grid-cols-3 gap-8"
+          >
             {BRANCHES.map((b, i) => (
               <motion.div 
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative h-[500px] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col justify-end p-8"
+                variants={{
+                  hidden: { opacity: 0, y: 40, x: i % 2 === 0 ? -40 : 40, filter: 'blur(10px)' },
+                  show: { opacity: 1, y: 0, x: 0, filter: 'blur(0px)' }
+                }}
+                transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={{ y: -10, scale: 1.02 }}
+                onClick={() => setSelectedBranch(b)}
+                className="group relative h-[500px] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col justify-end p-8 cursor-pointer"
               >
                 <img 
                   src={b.image} 
@@ -659,7 +632,7 @@ export default function App() {
                   </div>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
 
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -687,7 +660,14 @@ export default function App() {
       </main>
 
       {/* Footer - Professional & Trusted */}
-      <footer aria-label="Footer" className="py-24 px-6 bg-clinic-navy border-t border-white/5">
+      <motion.footer 
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 1 }}
+        aria-label="Footer" 
+        className="py-24 px-6 bg-clinic-navy border-t border-white/5"
+      >
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-16">
           <div className="space-y-10">
             <Logo />
@@ -737,7 +717,7 @@ export default function App() {
             <a href="#" className="hover:text-clinic-blue">Terms of Service</a>
           </div>
         </div>
-      </footer>
+      </motion.footer>
           </motion.div>
         )}
       </AnimatePresence>

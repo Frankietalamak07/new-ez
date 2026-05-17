@@ -24,6 +24,26 @@
     <meta property="twitter:image" content="https://files.cdn-files-a.com/uploads/10385685/800_67cfaac119561.png" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script>
+      // Defensive measure against libraries trying to overwrite window.fetch
+      (function() {
+        if (typeof window !== 'undefined') {
+          const originalFetch = window.fetch;
+          try {
+            Object.defineProperty(window, 'fetch', {
+              configurable: false,
+              enumerable: true,
+              get: function() { return originalFetch; },
+              set: function(v) { 
+                console.warn('EZStep App: A library tried to overwrite window.fetch. Blocking assignment to prevent TypeError.');
+              }
+            });
+          } catch (e) {
+            console.error('EZStep App: Failed to protect window.fetch:', e);
+          }
+        }
+      })();
+    </script>
 
     <!-- Structured Data -->
     <script type="application/ld+json">

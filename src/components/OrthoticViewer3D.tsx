@@ -10,6 +10,38 @@ export const OrthoticViewer3D: React.FC = () => {
   const [activeLayer, setActiveLayer] = useState<'mesh' | 'support' | 'pressure'>('mesh');
   const [materialPreset, setMaterialPreset] = useState<'eva' | 'gel' | 'progrip'>('eva');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [painDescription, setPainDescription] = useState('');
+  const [selectedFootwear, setSelectedFootwear] = useState<'athletic' | 'dress' | 'boots' | 'casual'>('athletic');
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  const placeholders = [
+    'Describe your exact pain (e.g., sharp heel pain when waking up)',
+    'Ilarawan ang iyong sakit (halimbawa: matalim na sakit sa sakong pagkagising)',
+    'Ihulagway ang imong kasakit (pananglitan: hait nga sakit sa tikod inigmata)'
+  ];
+
+  const FOOTWEAR_OPTIONS = [
+    { id: 'athletic', label: 'Athletic', emoji: '👟' },
+    { id: 'dress', label: 'Dress', emoji: '👞' },
+    { id: 'boots', label: 'Boots', emoji: '🥾' },
+    { id: 'casual', label: 'Casual', emoji: '👟' }
+  ];
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -116,19 +148,50 @@ export const OrthoticViewer3D: React.FC = () => {
     renderer.domElement.addEventListener('pointerdown', startInteraction);
     renderer.domElement.addEventListener('wheel', startInteraction);
     
-    // Podium (Grounding)
-    const podiumGeo = new THREE.CylinderGeometry(4.2, 4.4, 0.4, 64);
-    const podiumMat = new THREE.MeshStandardMaterial({ 
-      color: 0xffffff, 
-      roughness: 0.05, 
-      metalness: 0.05,
+    // Podium (Grounding) - Multi-layered technical base
+    const podiumGroup = new THREE.Group();
+    
+    // Main Glass Base
+    const podiumGeo = new THREE.CylinderGeometry(5.2, 5.5, 0.4, 64);
+    const podiumMat = new THREE.MeshPhysicalMaterial({ 
+      color: 0xffffff,
+      roughness: 0.1,
+      metalness: 0.0,
+      transmission: 0.9,
+      thickness: 1.0,
       transparent: true,
-      opacity: 0.6
+      opacity: 0.5,
+      ior: 1.5
     });
     const podium = new THREE.Mesh(podiumGeo, podiumMat);
-    podium.position.y = -2.2;
     podium.receiveShadow = true;
-    scene.add(podium);
+    podiumGroup.add(podium);
+
+    // Accent Rim (Neon Cyan)
+    const rimGeo = new THREE.TorusGeometry(5.35, 0.02, 16, 100);
+    const rimMat = new THREE.MeshBasicMaterial({ 
+      color: 0x00E5FF,
+      transparent: true,
+      opacity: 0.8
+    });
+    const rim = new THREE.Mesh(rimGeo, rimMat);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.y = 0.19; // Top edge
+    podiumGroup.add(rim);
+
+    // Internal Core Glow
+    const coreGeo = new THREE.CylinderGeometry(4.8, 4.8, 0.1, 64);
+    const coreMat = new THREE.MeshBasicMaterial({ 
+      color: 0x0062FF,
+      transparent: true,
+      opacity: 0.05
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    core.position.y = -0.15;
+    podiumGroup.add(core);
+
+    podiumGroup.position.y = -2.4;
+    scene.add(podiumGroup);
 
     // Soft Contact Shadow Simulation (Radial Gradient)
     const shadowCanvas = document.createElement('canvas');
@@ -137,44 +200,61 @@ export const OrthoticViewer3D: React.FC = () => {
     const context = shadowCanvas.getContext('2d');
     if (context) {
       const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
-      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.4)');
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
       gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
       context.fillStyle = gradient;
       context.fillRect(0, 0, 128, 128);
     }
     
     const shadowTexture = new THREE.CanvasTexture(shadowCanvas);
+    
+    // 1. Insole Contact Shadow (Cast onto Podium)
     const softShadowGeo = new THREE.PlaneGeometry(6, 6);
     const softShadowMat = new THREE.MeshBasicMaterial({
       map: shadowTexture,
       transparent: true,
       opacity: 0.35,
       depthWrite: false,
+      blending: THREE.MultiplyBlending
     });
     const softShadow = new THREE.Mesh(softShadowGeo, softShadowMat);
     softShadow.rotation.x = -Math.PI / 2;
-    softShadow.position.y = -1.98; // Slightly above ground
+    softShadow.position.y = -2.18; // Just above podium top
     scene.add(softShadow);
 
-    // Wide Ambient Occlusion Plane
+    // 2. Podium Shadow (Large soft shadow beneath podium on ground)
+    const podiumShadowGeo = new THREE.PlaneGeometry(16, 16);
+    const podiumShadowMat = new THREE.MeshBasicMaterial({
+      map: shadowTexture,
+      transparent: true,
+      opacity: 0.2,
+      depthWrite: false,
+      blending: THREE.MultiplyBlending
+    });
+    const podiumShadow = new THREE.Mesh(podiumShadowGeo, podiumShadowMat);
+    podiumShadow.rotation.x = -Math.PI / 2;
+    podiumShadow.position.y = -2.61; // Just above floor the podium sits on
+    scene.add(podiumShadow);
+
+    // 3. Ambient Occlusion (Tighter floor shadow)
     const aoShadowGeo = new THREE.PlaneGeometry(10, 10);
     const aoShadowMat = new THREE.MeshBasicMaterial({
       map: shadowTexture,
       transparent: true,
-      opacity: 0.1,
+      opacity: 0.15,
       depthWrite: false,
     });
     const aoShadow = new THREE.Mesh(aoShadowGeo, aoShadowMat);
     aoShadow.rotation.x = -Math.PI / 2;
-    aoShadow.position.y = -2.0;
+    aoShadow.position.y = -2.62;
     scene.add(aoShadow);
 
     // Shadow Plane (Floor)
     const floorGeo = new THREE.PlaneGeometry(100, 100);
-    const floorMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+    const floorMat = new THREE.ShadowMaterial({ opacity: 0.1 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -2.2;
+    floor.position.y = -2.63; // Everything rests here
     floor.receiveShadow = true;
     scene.add(floor);
 
@@ -291,8 +371,9 @@ export const OrthoticViewer3D: React.FC = () => {
     scene.add(insoleGroup);
 
     // Animation Loop
+    let frameId: number;
     const animate = () => {
-      requestAnimationFrame(animate);
+      frameId = requestAnimationFrame(animate);
       const time = performance.now() * 0.001;
       const bob = Math.sin(time) * 0.1;
       insoleGroup.position.y = bob;
@@ -305,10 +386,12 @@ export const OrthoticViewer3D: React.FC = () => {
 
       controls.update();
 
-      // Podium subtle pulse
-      if (podium.material instanceof THREE.MeshStandardMaterial) {
-        podium.material.opacity = 0.4 + bob * 1.5;
+      // Podium pulse & Rim rotation
+      if (podium.material instanceof THREE.MeshPhysicalMaterial) {
+        podium.material.opacity = 0.5 + bob * 0.5;
       }
+      rim.rotation.z += 0.005;
+      rimMat.opacity = 0.6 + Math.sin(time * 2) * 0.2;
 
       heatmapPoints.forEach((p, i) => {
           p.scale.setScalar(1 + Math.sin(time * 3 + i) * 0.3);
@@ -380,6 +463,7 @@ export const OrthoticViewer3D: React.FC = () => {
     resetButton?.addEventListener('click', handleReset);
 
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('keydown', handleKeyDown);
       resetButton?.removeEventListener('click', handleReset);
@@ -393,7 +477,7 @@ export const OrthoticViewer3D: React.FC = () => {
       renderer.dispose();
       controls.dispose();
     };
-  }, [activeLayer, materialPreset, isFullscreen]);
+  }, [activeLayer, materialPreset, isFullscreen, selectedFootwear]);
 
   return (
     <div className={`relative group transition-all duration-500 overflow-hidden ${
@@ -403,116 +487,196 @@ export const OrthoticViewer3D: React.FC = () => {
     }`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,98,255,0.05),transparent_70%)]" />
       
-      {/* UI Overlay */}
-      <div className={`absolute z-20 space-y-4 ${isFullscreen ? 'top-12 left-12' : 'top-8 left-8'}`}>
-        <div className="flex flex-col gap-1 bg-white/40 backdrop-blur-sm p-3 rounded-2xl border border-white/50 shadow-sm">
-          <h4 className="text-clinic-navy font-display font-black text-xs uppercase tracking-[0.2em]">Live Biometric Stream</h4>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-clinic-blue rounded-full animate-ping" />
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Orthotic Engine v4.2</span>
+      {/* UI Overlay - Responsive Layout */}
+      <div className={`absolute z-20 pointer-events-none inset-0 p-4 md:p-8 flex flex-col md:flex-row justify-between ${isFullscreen ? 'p-10' : ''}`}>
+        {/* Top Section / Left Side: Diagnostic Controls */}
+        <div className="flex flex-col gap-3 w-full md:w-auto pointer-events-auto">
+          <div className="flex items-center justify-between md:flex-col md:items-start gap-3 bg-white/80 backdrop-blur-md p-3 rounded-2xl border border-white/50 shadow-lg">
+            <div className="space-y-1">
+              <h4 className="text-clinic-navy font-display font-black text-[9px] uppercase tracking-[0.2em]">Diagnostic Stream</h4>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-clinic-blue rounded-full animate-pulse" />
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">v4.2 Analysis</span>
+              </div>
+            </div>
+            
+            <div className="flex gap-1.5">
+               <button 
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="p-2 rounded-lg bg-slate-100 text-clinic-navy md:hidden"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+              <button className="reset-btn p-2 rounded-lg bg-slate-100 text-clinic-navy md:hidden">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="flex md:flex-col gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
+            {[
+              { id: 'mesh', label: 'Mesh', icon: <Maximize2 className="w-3 h-3" /> },
+              { id: 'support', label: 'Support', icon: <ShieldCheck className="w-3 h-3" /> },
+              { id: 'pressure', label: 'Pressure', icon: <Activity className="w-3 h-3" /> }
+            ].map((btn) => (
+              <button
+                key={btn.id}
+                onClick={() => setActiveLayer(btn.id as any)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all shadow-sm whitespace-nowrap flex-1 md:flex-initial ${
+                  activeLayer === btn.id 
+                  ? 'bg-clinic-navy text-white' 
+                  : 'bg-white/90 backdrop-blur-sm text-slate-500 border border-white/50'
+                }`}
+              >
+                {btn.icon}
+                {btn.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Desktop-only Secondary Controls */}
+          <div className="hidden md:flex flex-col gap-4">
+            {/* Manufacturing Presets */}
+            <div className="space-y-2">
+              <h5 className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1">Manufacturing</h5>
+              <div className="flex gap-2">
+                {[
+                  { id: 'eva', label: 'EVA', color: 'bg-slate-800' },
+                  { id: 'gel', label: 'GEL', color: 'bg-clinic-blue' },
+                  { id: 'progrip', label: 'PRO', color: 'bg-slate-950' }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setMaterialPreset(m.id as any)}
+                    className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center text-[8px] font-black ${
+                      materialPreset === m.id 
+                      ? 'border-clinic-blue scale-110 shadow-lg ring-4 ring-clinic-blue/10' 
+                      : 'border-white bg-white hover:border-slate-200'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full ${m.color} shadow-inner flex items-center justify-center text-white`}>
+                      {m.label[0]}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Footwear */}
+            <div className="space-y-2">
+              <h5 className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1">Footwear Profile</h5>
+              <div className="grid grid-cols-2 gap-2">
+                {FOOTWEAR_OPTIONS.map((fw) => (
+                  <button
+                    key={fw.id}
+                    onClick={() => setSelectedFootwear(fw.id as any)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all border ${
+                      selectedFootwear === fw.id
+                      ? 'bg-clinic-blue text-white border-clinic-blue shadow-md'
+                      : 'bg-white/80 backdrop-blur-sm text-slate-500 border-white/50 hover:border-slate-200'
+                    }`}
+                  >
+                    <span>{fw.emoji}</span>
+                    {fw.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          {[
-            { id: 'mesh', label: 'Structural Mesh', icon: <Maximize2 className="w-3 h-3" /> },
-            { id: 'support', label: 'Support Zones', icon: <ShieldCheck className="w-3 h-3" /> },
-            { id: 'pressure', label: 'Pressure Map', icon: <Activity className="w-3 h-3" /> }
-          ].map((btn) => (
-            <button
-              key={btn.id}
-              onClick={() => setActiveLayer(btn.id as any)}
-              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-md ${
-                activeLayer === btn.id 
-                ? 'bg-clinic-navy text-white shadow-clinic-blue/20 translate-x-1' 
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100'
-              }`}
-            >
-              {btn.icon}
-              {btn.label}
-            </button>
-          ))}
-        </div>
+        {/* Right Side / Middle Section: Analysis Card (Moved UP on mobile) */}
+        <div className="flex flex-col justify-start md:justify-between items-end gap-4 pointer-events-none mt-4 md:mt-0">
+          <div className="w-full md:w-auto">
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={`${activeLayer}-${selectedFootwear}`}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="bg-clinic-navy/90 backdrop-blur-xl p-5 rounded-[2rem] border border-white/10 shadow-2xl space-y-3 w-full md:max-w-[240px] pointer-events-auto"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Diagnostic Meta</span>
+                  <span className="text-[10px] font-black text-clinic-cyan">94% MATCH</span>
+                </div>
+                <div className="text-white font-display font-black text-sm md:text-lg uppercase tracking-tight leading-none italic">
+                  {activeLayer === 'mesh' ? 'Precise 4D Geometry' : activeLayer === 'support' ? 'Medial Arch Guard' : 'Metatarsal Relief'}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="px-2 py-0.5 bg-clinic-blue/20 rounded text-[7px] font-black text-clinic-cyan uppercase">
+                    {selectedFootwear} Profile
+                  </span>
+                  <span className="px-2 py-0.5 bg-white/5 rounded text-[7px] font-black text-slate-400 uppercase">
+                    {activeLayer} mode
+                  </span>
+                </div>
+                <p className="text-[9px] text-slate-400 font-bold uppercase leading-relaxed">
+                  {activeLayer === 'mesh' ? 'Voxelcare scan data mapped to 0.1mm tolerance.' : activeLayer === 'support' ? 'Correction for dynamic arch collapse.' : 'Pressure point isolation for shock absorption.'}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-        {/* Material Presets */}
-        <div className="pt-4 space-y-3">
-          <h5 className="text-[8px] font-black text-slate-400 uppercase tracking-widest pl-1">Manufacturing Presets</h5>
-          <div className="flex gap-2">
-            {[
-              { id: 'eva', label: 'EVA', color: 'bg-slate-800' },
-              { id: 'gel', label: 'GEL', color: 'bg-clinic-blue' },
-              { id: 'progrip', label: 'PRO', color: 'bg-slate-950' }
-            ].map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMaterialPreset(m.id as any)}
-                className={`w-10 h-10 rounded-full border-2 transition-all flex items-center justify-center text-[8px] font-black ${
-                  materialPreset === m.id 
-                  ? 'border-clinic-blue scale-110 shadow-lg ring-4 ring-clinic-blue/10' 
-                  : 'border-white bg-white hover:border-slate-200'
+          <div className="hidden md:flex flex-col gap-3 items-end pointer-events-auto">
+            <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/50 flex items-center gap-3 shadow-lg">
+              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.1em]">
+                {isFullscreen ? 'Immersive Clinical View Active • Esc to Exit' : 'Orbit to Analyze • Scroll to Zoom'}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className={`p-3 rounded-full border transition-all shadow-xl ${
+                  isFullscreen 
+                    ? 'bg-clinic-navy text-white border-clinic-navy' 
+                    : 'bg-white/90 backdrop-blur-md border-white/50 text-clinic-navy hover:bg-clinic-blue hover:text-white'
                 }`}
               >
-                <div className={`w-6 h-6 rounded-full ${m.color} shadow-inner flex items-center justify-center text-white`}>
-                   {m.label[0]}
-                </div>
+                <Maximize2 className={`w-4 h-4 transform ${isFullscreen ? 'rotate-180' : ''}`} />
               </button>
-            ))}
+              <button className="reset-btn bg-white/90 backdrop-blur-md p-3 rounded-full border border-white/50 text-clinic-navy hover:bg-clinic-blue hover:text-white transition-all shadow-xl">
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className={`absolute z-20 flex items-center gap-4 ${isFullscreen ? 'bottom-12 right-12' : 'bottom-8 right-8'}`}>
-         <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-200 flex items-center gap-3 shadow-xl">
+      {/* Pain Input Overlay - Mobile Optimized */}
+      <div className={`absolute z-30 bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 md:left-8 md:translate-x-0 w-[92%] md:w-auto pointer-events-none`}>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/95 backdrop-blur-xl border border-slate-200 rounded-3xl p-4 shadow-2xl pointer-events-auto md:w-64 space-y-3"
+        >
+          <div className="flex items-center justify-between">
+            <label className="text-[8px] font-black text-clinic-blue uppercase tracking-widest block font-sans">
+              Clinical Case Entry
+            </label>
             <div className="flex gap-1">
-               <span className="w-1 h-3 bg-clinic-blue/20 rounded-full" />
-               <span className="w-1 h-3 bg-clinic-blue/40 rounded-full" />
-               <span className="w-1 h-3 bg-clinic-blue/60 rounded-full" />
+               <span className={`w-1 h-1 rounded-full ${placeholderIndex === 0 ? 'bg-clinic-blue' : 'bg-slate-200'}`} />
+               <span className={`w-1 h-1 rounded-full ${placeholderIndex === 1 ? 'bg-clinic-blue' : 'bg-slate-200'}`} />
+               <span className={`w-1 h-1 rounded-full ${placeholderIndex === 2 ? 'bg-clinic-blue' : 'bg-slate-200'}`} />
             </div>
-            <span className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.1em]">
-               {isFullscreen ? 'Immersive Clinical View Active • Esc to Exit' : 'Scroll to Zoom • Right Click to Pan • Drag to Rotate'}
-            </span>
-         </div>
-         <button 
-           onClick={() => setIsFullscreen(!isFullscreen)}
-           className={`p-3 rounded-full border transition-all shadow-xl ${
-             isFullscreen 
-               ? 'bg-clinic-navy text-white border-clinic-navy hover:scale-110' 
-               : 'bg-white/90 backdrop-blur-md border-slate-200 hover:bg-clinic-blue hover:text-white'
-           }`}
-           title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-         >
-            <Maximize2 className={`w-4 h-4 transform ${isFullscreen ? 'rotate-180 scale-90' : ''}`} />
-         </button>
-         <button className="reset-btn bg-white/90 backdrop-blur-md p-3 rounded-full border border-slate-200 hover:bg-clinic-blue hover:text-white transition-colors shadow-xl">
-            <RotateCcw className="w-4 h-4" />
-         </button>
+          </div>
+          <div className="relative">
+            <textarea
+              value={painDescription}
+              onChange={(e) => setPainDescription(e.target.value)}
+              placeholder={placeholders[placeholderIndex]}
+              className="w-full h-14 md:h-20 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-[10px] text-clinic-navy placeholder:text-slate-400 focus:outline-none focus:border-clinic-blue/40 transition-all resize-none font-medium leading-relaxed"
+            />
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Multi-Lang Engine 2.0</span>
+            <button className="text-[7px] font-black text-clinic-blue uppercase tracking-widest hover:underline px-2 py-1 bg-clinic-blue/5 rounded">Submit Analysis</button>
+          </div>
+        </motion.div>
       </div>
 
       <div ref={mountRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* Dynamic Data Overlay */}
-      <div className={`absolute z-20 pointer-events-none ${isFullscreen ? 'bottom-12 left-12' : 'bottom-8 left-8'}`}>
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={activeLayer}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-white/90 backdrop-blur-md p-5 rounded-3xl border border-slate-100 shadow-xl space-y-2 min-w-[200px]"
-          >
-            <div className="flex justify-between items-center">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Zone Analysis</span>
-              <span className="text-[10px] font-black text-clinic-blue">94% MATCH</span>
-            </div>
-            <div className="text-clinic-navy font-display font-black text-lg uppercase tracking-tight leading-none italic drop-shadow-sm">
-                {activeLayer === 'mesh' ? 'Precise 4D Geometry' : activeLayer === 'support' ? 'Medial Arch Guard' : 'Metatarsal Relief'}
-            </div>
-            <p className="text-[8px] text-slate-500 font-bold uppercase leading-relaxed">
-                {activeLayer === 'mesh' ? 'Spain-engineered VOXELCARE scan data mapped to 0.1mm tolerance.' : activeLayer === 'support' ? 'Dynamic structural reinforcement for flat feet correction.' : 'Isolating high-impact pressure points for systemic relief.'}
-            </p>
-          </motion.div>
-        </AnimatePresence>
-      </div>
     </div>
   );
 };
