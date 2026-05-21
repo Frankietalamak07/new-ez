@@ -1,0 +1,102 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isSignedIn() { return request.auth != null; }
+    function isSuperAdmin() { 
+      return isSignedIn() && 
+             request.auth.token.email == "frankjoven1991@gmail.com";
+    }
+    function isAdmin() { return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))); }
+    function isValidId(id) { return id is string && id.size() <= 256; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Validation Blueprints
+    function isValidBooking(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.clinicId is string && data.clinicId.size() <= 128 &&
+             data.date is string && data.date.size() == 10 && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$') &&
+             data.timeSlot is string && data.timeSlot.size() <= 20 &&
+             data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100 &&
+             data.customerEmail is string && data.customerEmail.size() <= 100 &&
+             data.customerPhone is string && data.customerPhone.size() <= 20 &&
+             (!data.keys().hasAll(['userId']) || data.userId == request.auth.uid) &&
+             (data.status == 'pending' || data.status == 'confirmed' || data.status == 'cancelled');
+    }
+
+    match /bookings/{bookingId} {
+      // Create
+      allow create: if (
+        isSignedIn() &&
+        isValidId(bookingId) &&
+        isValidBooking(incoming()) &&
+        incoming().keys().hasAll(['id', 'clinicId', 'clinicName', 'date', 'timeSlot', 'customerName', 'customerEmail', 'customerPhone', 'createdAt', 'status']) &&
+        // Protect against shadow fields: 11 fields expected
+        incoming().keys().size() <= 11 &&
+        incoming().createdAt == request.time
+      );
+
+      // Read
+      allow get, list: if isSignedIn();
+
+      // Update
+      allow update: if (
+        isSignedIn() && (
+          isAdmin() || (
+            resource.data.userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+            incoming().status == 'cancelled' &&
+            existing().status == 'pending'
+          )
+        )
+      );
+
+      // Delete
+      allow delete: if isAdmin();
+    }
+
+    function isValidPrescription(data) {
+      return data.bookingId is string && 
+             data.userId == request.auth.uid &&
+             data.materials is list && data.materials.size() > 0 &&
+             data.maintenance is string && data.maintenance.size() <= 2000;
+    }
+
+    match /prescriptions/{prescriptionId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    function isValidInsight(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.excerpt is string && data.excerpt.size() <= 1000 &&
+             data.image is string && data.image.size() <= 1000;
+    }
+
+    match /insights/{insightId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /testimonials/{testimonialId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow read: if isSignedIn() && request.auth.uid == adminId;
+    }
+  }
+}

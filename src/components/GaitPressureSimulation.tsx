@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, Info, Move } from 'lucide-react';
+import { Eye, EyeOff, Info, Move, Wand2, Volume2, Loader2 } from 'lucide-react';
 
 interface PressurePoint {
   x: number;
@@ -85,8 +85,52 @@ const SIMULATION_MAP: Record<string, SimulationData> = {
 
 export const GaitPressureSimulation: React.FC<{ conditionId: string }> = ({ conditionId }) => {
   const [isCorrected, setIsCorrected] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   const data = useMemo(() => SIMULATION_MAP[conditionId] || SIMULATION_MAP['heel'], [conditionId]);
   const activePoints = isCorrected ? data.corrected : data.natural;
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/api/gait-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conditionId, isCorrected })
+      });
+      const data = await response.json();
+      if (data.analysis) {
+        setAnalysis(data.analysis);
+      }
+    } catch (err) {
+      console.error("Analysis failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleSpeak = async () => {
+    if (isSpeaking || !analysis) return;
+    setIsSpeaking(true);
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: analysis })
+      });
+      const data = await response.json();
+      if (data.audioData) {
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioData}`);
+        audio.onended = () => setIsSpeaking(false);
+        await audio.play();
+      }
+    } catch (err) {
+      console.error("Speech failed:", err);
+      setIsSpeaking(false);
+    }
+  };
 
   return (
     <div className="relative w-full bg-slate-900/50 rounded-3xl border border-white/5 p-6 overflow-hidden">
@@ -182,15 +226,60 @@ export const GaitPressureSimulation: React.FC<{ conditionId: string }> = ({ cond
         </div>
       </div>
 
-      <div className="mt-6 p-4 rounded-2xl bg-slate-950/50 border border-white/5 space-y-2">
-         <div className="flex items-center gap-2 text-[8px] font-black text-slate-500 uppercase tracking-widest">
-           <Info className="w-3 h-3 text-clinic-blue" /> Machine Note
+      <div className="mt-6 p-4 rounded-2xl bg-slate-950/50 border border-white/5 space-y-3">
+         <div className="flex items-center justify-between">
+           <div className="flex items-center gap-2 text-[8px] font-black text-slate-500 uppercase tracking-widest">
+             <Info className="w-3 h-3 text-clinic-blue" /> Machine Note
+           </div>
+           <button 
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            className="flex items-center gap-1 text-[7px] font-black text-clinic-cyan uppercase tracking-widest hover:bg-clinic-cyan/10 px-2 py-1 rounded transition-colors disabled:opacity-50"
+           >
+            {isAnalyzing ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Wand2 className="w-2.5 h-2.5" />}
+            AI Analysis
+           </button>
          </div>
-         <p className="text-[9px] text-slate-400 font-medium leading-relaxed">
-           {isCorrected 
-            ? "EZStep shell lift & density correction has normalized the center of pressure (CoP) trajectory." 
-            : "Abnormal peak pressures detected. Kinetic chain vulnerability identified in " + conditionId.toUpperCase() + "."}
-         </p>
+         
+         <AnimatePresence mode="wait">
+           {analysis ? (
+             <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-3"
+             >
+               <p className="text-[9px] text-clinic-cyan font-medium leading-relaxed italic border-l border-clinic-cyan/30 pl-3">
+                 "{analysis}"
+               </p>
+               <div className="flex gap-2">
+                 <button 
+                  onClick={handleSpeak}
+                  disabled={isSpeaking}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-clinic-cyan/10 text-clinic-cyan text-[8px] font-black uppercase tracking-widest hover:bg-clinic-cyan/20 transition-all ${isSpeaking ? 'animate-pulse' : ''}`}
+                 >
+                  <Volume2 className="w-3 h-3" /> {isSpeaking ? 'Reading...' : 'Listen to Report'}
+                 </button>
+                 <button 
+                  onClick={() => setAnalysis(null)}
+                  className="px-3 py-1.5 text-[8px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors"
+                 >
+                  Hide
+                 </button>
+               </div>
+             </motion.div>
+           ) : (
+             <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[9px] text-slate-400 font-medium leading-relaxed"
+             >
+                {isCorrected 
+                ? "EZStep shell lift & density correction has normalized the center of pressure (CoP) trajectory." 
+                : "Abnormal peak pressures detected. Kinetic chain vulnerability identified in " + conditionId.toUpperCase() + "."}
+             </motion.p>
+           )}
+         </AnimatePresence>
       </div>
     </div>
   );

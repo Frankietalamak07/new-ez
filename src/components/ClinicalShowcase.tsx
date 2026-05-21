@@ -113,7 +113,19 @@ export const ClinicalShowcase: React.FC = () => {
               <div className="flex gap-4">
                 {whyUsData.map((stat, i) => (
                   <div key={i} className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
-                     <div className="text-clinic-cyan mb-1">{stat.icon}</div>
+                     <motion.div 
+                       className="text-clinic-cyan mb-1"
+                       whileHover={{ 
+                         scale: [1, 1.2, 1],
+                         transition: { 
+                           duration: 1, 
+                           repeat: Infinity,
+                           ease: "easeInOut"
+                         } 
+                       }}
+                     >
+                       {stat.icon}
+                     </motion.div>
                      <div className="text-white font-black text-xl leading-none">{stat.value}</div>
                      <div className="text-[8px] text-slate-500 font-bold uppercase tracking-widest mt-1">{stat.title}</div>
                   </div>
@@ -138,9 +150,19 @@ export const ClinicalShowcase: React.FC = () => {
                 className="group p-8 rounded-[2.5rem] bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 hover:border-clinic-blue/40 transition-all duration-500 flex flex-col justify-end min-h-[180px] relative overflow-hidden"
               >
                 <div className="absolute -top-4 -right-4 w-24 h-24 bg-clinic-blue/5 rounded-full blur-2xl group-hover:bg-clinic-blue/20 transition-all" />
-                <div className="w-12 h-12 rounded-2xl bg-clinic-blue/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <motion.div 
+                  className="w-12 h-12 rounded-2xl bg-clinic-blue/10 flex items-center justify-center mb-6"
+                  whileHover={{ 
+                    scale: [1, 1.1, 1],
+                    transition: { 
+                      duration: 1, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    } 
+                  }}
+                >
                   {f.icon}
-                </div>
+                </motion.div>
                 <h4 className="text-white font-display text-xl font-black uppercase mb-3 group-hover:text-clinic-cyan transition-colors">{f.title}</h4>
                 <p className="text-slate-400 text-sm font-medium leading-relaxed">{f.desc}</p>
               </motion.div>

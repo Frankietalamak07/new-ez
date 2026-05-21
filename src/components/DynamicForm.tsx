@@ -27,6 +27,8 @@ interface DynamicFormProps {
   onSubmit: (data: Record<string, any>) => void;
   submitLabel?: string;
   isLoading?: boolean;
+  fieldExtras?: Record<string, React.ReactNode>;
+  onChange?: (data: Record<string, any>) => void;
 }
 
 const RotatingInput: React.FC<{
@@ -70,13 +72,22 @@ const RotatingInput: React.FC<{
   );
 };
 
-export const DynamicForm: React.FC<DynamicFormProps> = ({ config, onSubmit, submitLabel = "Execute Process", isLoading = false }) => {
+export const DynamicForm: React.FC<DynamicFormProps> = ({ 
+  config, 
+  onSubmit, 
+  submitLabel = "Execute Process", 
+  isLoading = false,
+  fieldExtras,
+  onChange
+}) => {
   const [formData, setFormData] = React.useState<Record<string, any>>({});
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const handleChange = (id: string, value: any) => {
     if (isLoading) return;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    const newData = { ...formData, [id]: value };
+    setFormData(newData);
+    onChange?.(newData);
     if (errors[id]) {
       const newErrors = { ...errors };
       delete newErrors[id];
@@ -169,6 +180,12 @@ export const DynamicForm: React.FC<DynamicFormProps> = ({ config, onSubmit, subm
                 {errors[field.id] && (
                   <div className="flex items-center gap-1.5 text-red-400 text-[8px] font-bold uppercase tracking-wider mt-1 pl-1">
                     <AlertCircle className="w-3 h-3" /> {errors[field.id]}
+                  </div>
+                )}
+
+                {fieldExtras?.[field.id] && (
+                  <div className="mt-4">
+                    {fieldExtras[field.id]}
                   </div>
                 )}
               </div>

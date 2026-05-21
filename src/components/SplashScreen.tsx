@@ -100,7 +100,7 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
           transition={{ duration: 1, ease: "easeOut" }}
           className="mb-16"
         >
-          <Logo isDark={false} />
+          <Logo />
         </motion.div>
 
         {/* Clinical Progress Interface */}

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TechnologySection } from './components/TechnologySection';
 import { ClinicalShowcase } from './components/ClinicalShowcase';
@@ -34,6 +34,14 @@ import { TheDifferenceSection } from './components/TheDifferenceSection';
 import { BranchModal } from './components/BranchModal';
 import { LiquidCursor } from './components/LiquidCursor';
 import { MissionVisionSection } from './components/MissionVisionSection';
+import { BookingModal } from './components/BookingModal';
+import { TestimonialsSection } from './components/TestimonialsSection';
+import { FAQSection } from './components/FAQSection';
+import { Chatbot } from './components/Chatbot';
+import { AuthModal } from './components/AuthModal';
+import { PatientPortal } from './components/PatientPortal';
+import { onAuthStateChanged, User as FirebaseUser, signOut } from 'firebase/auth';
+import { auth } from './lib/firebase';
 
 const PRODUCTS = [
   {
@@ -67,6 +75,7 @@ const PRODUCTS = [
 
 const BRANCHES = [
   { 
+    id: 'one-ayala',
     name: 'ONE AYALA', 
     mall: 'Ayala Malls',
     loc: '3/L, One Ayala Malls', 
@@ -77,6 +86,7 @@ const BRANCHES = [
     image: '/src/assets/images/regenerated_image_1778927218408.png'
   },
   { 
+    id: 'sm-mall-of-asia',
     name: 'SM MALL OF ASIA', 
     mall: 'North Entertainment Mall',
     loc: '2/L, North Entertainment Mall', 
@@ -87,6 +97,7 @@ const BRANCHES = [
     image: '/src/assets/images/regenerated_image_1778927223942.png'
   },
   { 
+    id: 'sm-north-annex',
     name: 'SM NORTH ANNEX', 
     mall: 'SM City North EDSA',
     loc: '2/L, SM City North EDSA Annex 1', 
@@ -106,7 +117,45 @@ const SOCIALS = {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState<'landing' | 'portal'>('landing');
   const [selectedBranch, setSelectedBranch] = useState<any>(null);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [bookingBranch, setBookingBranch] = useState<any>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [pendingBookingAction, setPendingBookingAction] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser && pendingBookingAction) {
+        setIsBookingOpen(true);
+        setPendingBookingAction(false);
+      }
+      if (!currentUser && view === 'portal') {
+        setView('landing');
+      }
+    });
+    return () => unsubscribe();
+  }, [view, pendingBookingAction]);
+
+  const openAuth = (mode: 'login' | 'register') => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+  };
+
+  const handleOpenBooking = (branch: any = null) => {
+    if (!user) {
+      setBookingBranch(branch);
+      setPendingBookingAction(true);
+      openAuth('register');
+      return;
+    }
+    setBookingBranch(branch);
+    setIsBookingOpen(true);
+    setSelectedBranch(null); // Close branch modal if open
+  };
 
   return (
     <div className="font-sans text-slate-900 bg-white min-h-screen relative">
@@ -114,6 +163,8 @@ export default function App() {
       <AnimatePresence mode="wait">
         {isLoading ? (
           <SplashScreen key="splash" onComplete={() => setIsLoading(false)} />
+        ) : view === 'portal' ? (
+          <PatientPortal key="portal" onBack={() => setView('landing')} />
         ) : (
           <motion.div
             key="content"
@@ -121,7 +172,26 @@ export default function App() {
             animate={{ opacity: 1 }}
             transition={{ duration: 1, ease: "easeOut" }}
           >
-            <BranchModal branch={selectedBranch} onClose={() => setSelectedBranch(null)} />
+            <BranchModal 
+              branch={selectedBranch} 
+              onClose={() => setSelectedBranch(null)} 
+              onBook={handleOpenBooking}
+            />
+            <BookingModal 
+              isOpen={isBookingOpen} 
+              onClose={() => setIsBookingOpen(false)}
+              initialBranch={bookingBranch}
+              branches={BRANCHES}
+            />
+            <AuthModal 
+              isOpen={isAuthOpen} 
+              onClose={() => {
+                setIsAuthOpen(false);
+                setPendingBookingAction(false);
+              }} 
+              initialMode={authMode}
+              message={pendingBookingAction ? "Initialize your clinical profile to secure your bio-slot and biometric archive." : undefined}
+            />
             <header>
               {/* Announcement Bar - Medical Alert Style */}
               <div className="fixed top-0 left-0 right-0 z-[60] bg-clinic-navy text-white py-2 px-6 text-center">
@@ -171,7 +241,42 @@ export default function App() {
                     ))}
                   </div>
 
-                  <a href={SOCIALS.facebook} target="_blank" rel="noopener noreferrer">
+                  <div className="flex items-center gap-4">
+                    {user ? (
+                      <div className="flex items-center gap-4">
+                        <div className="text-right hidden sm:block">
+                          <p className="text-[9px] font-black text-clinic-navy uppercase tracking-tight">{user.displayName || 'Patient Account'}</p>
+                          <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">EZSTEP SYNC ACTIVE</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setView('portal')}
+                            className="bg-clinic-navy text-white px-5 py-3 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-clinic-blue transition-all shadow-lg shadow-clinic-navy/20"
+                          >
+                            Archive
+                          </motion.button>
+                          <motion.button 
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => signOut(auth)}
+                            className="px-4 py-2 border border-slate-100 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-all"
+                          >
+                            Sign Out
+                          </motion.button>
+                        </div>
+                      </div>
+                    ) : (
+                      <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => openAuth('login')}
+                        className="text-[10px] font-black text-clinic-navy uppercase tracking-widest px-6 py-3 border border-slate-100 rounded-full hover:bg-slate-50 transition-all"
+                      >
+                        Portal Access
+                      </motion.button>
+                    )}
                     <motion.button 
                       whileHover={{ 
                         scale: 1.05, 
@@ -179,11 +284,12 @@ export default function App() {
                         y: -2
                       }}
                       whileTap={{ scale: 0.95 }}
+                      onClick={() => handleOpenBooking()}
                       className="bg-clinic-blue text-white font-bold text-[10px] uppercase tracking-widest px-7 py-3 rounded-full transition-all shadow-lg active:shadow-inner"
                     >
                       Book Assessment
                     </motion.button>
-                  </a>
+                  </div>
                 </div>
               </nav>
             </header>
@@ -237,15 +343,14 @@ export default function App() {
               transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
               className="flex flex-wrap gap-4 pt-4"
             >
-              <a href="#branches">
-                <motion.button 
-                  whileHover={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-clinic-navy text-white font-black px-12 py-5 uppercase tracking-widest text-xs rounded-2xl shadow-2xl hover:bg-clinic-blue transition-colors group"
-                >
-                  Free Clinical Scan <ArrowRight className="inline-block w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                </motion.button>
-              </a>
+              <motion.button 
+                whileHover={{ scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleOpenBooking()}
+                className="bg-clinic-navy text-white font-black px-12 py-5 uppercase tracking-widest text-xs rounded-2xl shadow-2xl hover:bg-clinic-blue transition-colors group"
+              >
+                Free Clinical Scan <ArrowRight className="inline-block w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+              </motion.button>
               <a href="#products">
                 <motion.button 
                   whileHover={{ scale: 1.02, backgroundColor: "rgba(248, 250, 252, 1)" }}
@@ -281,9 +386,14 @@ export default function App() {
         </motion.div>
       </div>
 
+      <ClinicalShowcase />
       <TheDifferenceSection />
 
       <MissionVisionSection />
+      <TestimonialsSection />
+      <FAQSection />
+
+      <Chatbot />
 
       <BlogSection />
 
@@ -454,7 +564,10 @@ export default function App() {
               </div>
               <h2 className="font-display text-4xl sm:text-5xl md:text-7xl font-black leading-[1] uppercase">TENS M2<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-clinic-blue to-clinic-cyan">RELIEF PLATFORM</span></h2>
               <p className="text-slate-400 text-base md:text-lg leading-relaxed max-w-md font-medium mx-auto lg:mx-0">The intersection of physiotherapy and at-home recovery. Our TENS platform delivers targeted therapeutic electrical stimulation for deep tissue fatigue.</p>
-              <button className="bg-white text-clinic-navy font-black px-10 py-4 md:px-12 md:py-5 uppercase tracking-widest text-xs rounded-2xl hover:bg-clinic-cyan transition-all shadow-2xl active:scale-95">
+              <button 
+                onClick={() => handleOpenBooking()}
+                className="bg-white text-clinic-navy font-black px-10 py-4 md:px-12 md:py-5 uppercase tracking-widest text-xs rounded-2xl hover:bg-clinic-cyan transition-all shadow-2xl active:scale-95"
+              >
                 Clinical Trial →
               </button>
             </motion.div>
@@ -491,68 +604,7 @@ export default function App() {
         </div>
       </motion.section>
 
-      {/* Testimonials - THE CLINICAL PROOF */}
-      <section className="py-32 px-6 bg-white overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(0,98,255,0.03),transparent_40%)]" />
-        <div className="max-w-7xl mx-auto space-y-20 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 20, filter: 'blur(10px)' }}
-            whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            viewport={{ once: true }}
-            className="text-center space-y-4"
-          >
-             <div className="inline-flex items-center px-4 py-2 bg-clinic-blue/5 text-clinic-blue border border-clinic-blue/20 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mx-auto">Clients Testimony</div>
-             <h2 className="font-display text-5xl md:text-6xl font-black text-clinic-navy uppercase tracking-tight">CLINICALLY <span className="text-clinic-blue">VERIFIED</span> RESULTS</h2>
-             <p className="text-slate-500 font-medium max-w-2xl mx-auto italic">Peer-reviewed outcomes from real individuals who transitioned from chronic pain to optimized clinical alignment.</p>
-          </motion.div>
-          
-          <motion.div 
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: {
-                  staggerChildren: 0.15
-                }
-              }
-            }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            {[
-              { n: 'Jerome D.', r: 'Professional Athlete', t: "The clinical precision is unmatched. I transitioned from chronic plantar fasciitis to hitting my PRs again within weeks. Real science, real comfort.", i: '👟' },
-              { n: 'Vince G.', r: 'Field Specialist', t: "Finally, a solution that doesn't just pad the foot but actually aligns the gait. My back pain disappeared after a decade of searching for answers.", i: '🚶' },
-              { n: 'Angel M.', r: 'Medical Surgeon', t: "As someone on their feet for 12 hours, the biomechanical correction is vital. EZStep corrected my flat feet where generic inserts failed.", i: '🏥' },
-              { n: 'Sophia R.', r: 'Fitness Instructor', t: "The data-driven approach changed how I move. I can feel the energy return in every step. It's a complete postural upgrade.", i: '⚡' },
-              { n: 'Marcus K.', r: 'Retail Manager', t: "Standing all day used to be a nightmare. Now, it's effortless. The durability of the clinical materials is what sets them apart.", i: '🛡️' }
-            ].map((testimony, i) => (
-              <motion.div 
-                key={i} 
-                variants={{
-                  hidden: { opacity: 0, scale: 0.9, y: 30, filter: 'blur(10px)' },
-                  show: { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }
-                }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                className="medical-card p-10 flex flex-col h-full bg-slate-50/10 border border-slate-100 hover:bg-white hover:shadow-2xl hover:border-clinic-blue/20 transition-all duration-500 group"
-              >
-                <div className="text-3xl mb-8 transform group-hover:scale-110 transition-transform duration-500">{testimony.i}</div>
-                <p className="text-slate-600 font-medium italic leading-[1.8] flex-1">"{testimony.t}"</p>
-                <div className="pt-8 mt-10 border-t border-slate-100 flex items-center gap-4">
-                   <div className="w-12 h-12 bg-gradient-to-br from-clinic-navy to-slate-800 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-lg group-hover:from-clinic-blue transition-all">
-                    {testimony.n.split(' ')[0][0]}{testimony.n.split(' ')[1][0]}
-                   </div>
-                   <div>
-                     <div className="font-black text-clinic-navy text-[11px] uppercase tracking-widest">{testimony.n}</div>
-                     <div className="text-[9px] text-clinic-blue font-black uppercase tracking-widest mt-1 opacity-70">{testimony.r}</div>
-                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+
 
       {/* Locations - THE CLINIC NETWORK */}
       <motion.section 
@@ -645,15 +697,14 @@ export default function App() {
               <h3 className="font-display text-3xl font-black uppercase">NO APPOINTMENT NECESSARY</h3>
               <p className="text-slate-400 font-medium max-w-lg">Walk into any of our booths for a 5-minute <span className="text-white font-bold italic">FREE VOXEL SCAN</span>. Our clinical specialists are ready to analyze your gait metrics on the spot.</p>
             </div>
-            <a href={SOCIALS.facebook} target="_blank" rel="noopener noreferrer" className="relative z-10">
-              <motion.button 
-                whileHover={{ scale: 1.05, boxShadow: "0 25px 50px rgba(0,98,255,0.3)" }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-clinic-blue text-white font-black py-5 px-12 rounded-2xl uppercase tracking-[0.2em] text-xs hover:bg-clinic-cyan transition-all shadow-2xl whitespace-nowrap"
-              >
-                Find Nearest Booth
-              </motion.button>
-            </a>
+            <motion.button 
+              whileHover={{ scale: 1.05, boxShadow: "0 25px 50px rgba(0,98,255,0.3)" }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleOpenBooking()}
+              className="bg-clinic-blue text-white font-black py-5 px-12 rounded-2xl uppercase tracking-[0.2em] text-xs hover:bg-clinic-cyan transition-all shadow-2xl whitespace-nowrap"
+            >
+              Find Nearest Booth
+            </motion.button>
           </motion.div>
         </div>
       </motion.section>

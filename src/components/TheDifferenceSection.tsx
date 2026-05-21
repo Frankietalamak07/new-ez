@@ -58,7 +58,19 @@ export const TheDifferenceSection: React.FC = () => {
             className="p-8 md:p-16 rounded-[2.5rem] md:rounded-[3rem] bg-white/5 border border-white/5 space-y-10 md:space-y-12 relative overflow-hidden group"
           >
             <div className="absolute top-0 right-0 p-8">
-              <XCircle className="w-12 h-12 text-slate-700 opacity-20" />
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  opacity: [0.2, 0.3, 0.2]
+                }}
+                transition={{ 
+                  duration: 3, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <XCircle className="w-12 h-12 text-slate-700" />
+              </motion.div>
             </div>
             
             <div className="space-y-2">
@@ -97,7 +109,19 @@ export const TheDifferenceSection: React.FC = () => {
             className="p-8 md:p-16 rounded-[2.5rem] md:rounded-[3rem] bg-clinic-navy border border-clinic-blue/20 space-y-10 md:space-y-12 relative overflow-hidden group shadow-[0_40px_100px_rgba(0,0,0,0.5)]"
           >
             <div className="absolute top-0 right-0 p-8">
-              <ShieldCheck className="w-12 h-12 text-clinic-cyan opacity-20 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700" />
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.15, 1],
+                  opacity: [0.2, 0.5, 0.2]
+                }}
+                transition={{ 
+                  duration: 2.5, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <ShieldCheck className="w-12 h-12 text-clinic-cyan" />
+              </motion.div>
             </div>
 
             <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-clinic-blue/10 rounded-full blur-[100px]" />
@@ -150,7 +174,19 @@ export const TheDifferenceSection: React.FC = () => {
              { icon: <ShieldCheck className="w-5 h-5" />, label: "MED-CERTIFIED", value: "Level 1 Grade" }
            ].map((tech, i) => (
              <div key={i} className="flex flex-col items-center gap-3 p-6 rounded-2xl bg-white/5 border border-white/10 text-center group/item hover:bg-clinic-blue/10 hover:border-clinic-blue/20 transition-all">
-                <div className="text-clinic-cyan group-hover/item:scale-110 transition-transform">{tech.icon}</div>
+                <motion.div 
+                  className="text-clinic-cyan"
+                  whileHover={{ 
+                    scale: [1, 1.15, 1],
+                    transition: { 
+                      duration: 1, 
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    } 
+                  }}
+                >
+                  {tech.icon}
+                </motion.div>
                 <div className="space-y-1">
                   <div className="text-[8px] font-black text-white uppercase tracking-[0.2em]">{tech.label}</div>
                   <div className="text-[10px] font-bold text-clinic-cyan/70 uppercase tracking-widest">{tech.value}</div>

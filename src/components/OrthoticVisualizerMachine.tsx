@@ -14,8 +14,13 @@ import {
   RefreshCw,
   Search,
   Box,
-  ClipboardList
+  ClipboardList,
+  Sparkles,
+  Wand2,
+  Loader2,
+  Volume2
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { GaitPressureSimulation } from './GaitPressureSimulation';
 import { DynamicForm, FormConfig } from './DynamicForm';
 
@@ -206,6 +211,52 @@ export const OrthoticVisualizerMachine: React.FC = () => {
   const [currentResult, setCurrentResult] = useState<DiagnosticResult | null>(null);
   const [machineState, setMachineState] = useState<'idle' | 'consulting' | 'scanning' | 'complete'>('idle');
   const [consultationData, setConsultationData] = useState<Record<string, any>>({});
+  const [aiSuggestions, setAiSuggestions] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const handleSpeak = async () => {
+    if (isSpeaking || !aiSuggestions) return;
+    setIsSpeaking(true);
+    try {
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: aiSuggestions.replace(/[#*`]/g, '') }) // Clean markdown for TTS
+      });
+      const data = await response.json();
+      if (data.audioData) {
+        const audio = new Audio(`data:audio/mp3;base64,${data.audioData}`);
+        audio.onended = () => setIsSpeaking(false);
+        await audio.play();
+      }
+    } catch (err) {
+      console.error("Speech failed:", err);
+      setIsSpeaking(false);
+    }
+  };
+
+  const analyzePain = async () => {
+    const description = consultationData.pain_description;
+    if (!description || description.length < 10) return;
+    
+    setIsAiLoading(true);
+    try {
+      const response = await fetch('/api/orthotic-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description }),
+      });
+      const data = await response.json();
+      if (data.suggestions) {
+        setAiSuggestions(data.suggestions);
+      }
+    } catch (error) {
+      console.error('AI Analysis failed:', error);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const selectCondition = (id: string) => {
     setSelectedId(id);
@@ -248,6 +299,52 @@ export const OrthoticVisualizerMachine: React.FC = () => {
     setCurrentResult(null);
     setMachineState('idle');
     setConsultationData({});
+    setAiSuggestions(null);
+  };
+
+  const fieldExtras = {
+    pain_description: (
+      <div className="space-y-4">
+        <button 
+          type="button"
+          onClick={analyzePain}
+          disabled={isAiLoading || !consultationData.pain_description || consultationData.pain_description.length < 10}
+          className="flex items-center gap-2 px-4 py-2 bg-clinic-cyan/10 border border-clinic-cyan/30 rounded-xl text-clinic-cyan text-[10px] font-black uppercase tracking-widest hover:bg-clinic-cyan/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+          Analyze Case with Lab AI
+        </button>
+
+        <AnimatePresence>
+          {aiSuggestions && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="p-5 rounded-2xl bg-clinic-blue/5 border border-clinic-blue/10 relative overflow-hidden group mb-4"
+            >
+              <div className="absolute top-0 right-0 p-3 flex gap-2 items-center">
+                <button 
+                  onClick={handleSpeak}
+                  disabled={isSpeaking}
+                  className={`p-2 rounded-lg bg-clinic-cyan/20 text-clinic-cyan hover:bg-clinic-cyan/30 transition-all ${isSpeaking ? 'animate-pulse' : ''}`}
+                  title="Read Analysis Aloud"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                </button>
+                <Sparkles className="w-4 h-4 text-clinic-cyan opacity-40 group-hover:scale-110 transition-transform" />
+              </div>
+              <div className="text-[9px] font-black text-clinic-cyan uppercase tracking-widest mb-3">
+                AI LAB RECOMMENDATION:
+              </div>
+              <div className="text-slate-300 text-[11px] leading-relaxed font-medium markdown-body">
+                <ReactMarkdown>{aiSuggestions}</ReactMarkdown>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    )
   };
 
   return (
@@ -392,6 +489,8 @@ export const OrthoticVisualizerMachine: React.FC = () => {
                   <DynamicForm 
                     config={CONSULTATION_CONFIG}
                     onSubmit={handleConsultationSubmit}
+                    onChange={(data) => setConsultationData(data)}
+                    fieldExtras={fieldExtras}
                     submitLabel="Initialize Bio-Scan"
                     isLoading={isSubmitting}
                   />

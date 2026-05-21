@@ -145,9 +145,10 @@ export const PainSelector: React.FC = () => {
               <AnimatePresence>
                 {selected === point.id && (
                   <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    exit={{ scale: 0, rotate: -45 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   >
                     <CheckCircle2 className="w-6 h-6 text-clinic-blue" />
                   </motion.div>

@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // @ts-ignore
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { motion, AnimatePresence } from 'motion/react';
-import { Maximize2, RotateCcw, Activity, ShieldCheck } from 'lucide-react';
+import { Maximize2, RotateCcw, Activity, ShieldCheck, Volume2, Loader2, Wand2 } from 'lucide-react';
 
 export const OrthoticViewer3D: React.FC = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -29,6 +29,29 @@ export const OrthoticViewer3D: React.FC = () => {
 
   const [isMobile, setIsMobile] = useState(false);
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+
+  const handleAiAnalysis = async () => {
+    if (!painDescription.trim()) return;
+    setIsAnalyzing(true);
+    try {
+      const response = await fetch('/api/orthotic-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: painDescription })
+      });
+      const data = await response.json();
+      if (data.suggestions) {
+        setAiAnalysis(data.suggestions);
+      }
+    } catch (err) {
+      console.error("Analysis failed:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -42,6 +65,60 @@ export const OrthoticViewer3D: React.FC = () => {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
+
+  const presets = {
+    eva: {
+      color: 0x1E293B,
+      roughness: 0.55,
+      metalness: 0.2,
+      transmission: 0.0,
+      clearcoat: 0.4,
+      clearcoatRoughness: 0.2,
+      thickness: 0,
+      ior: 1.45,
+      sheen: 0.8,
+      sheenRoughness: 0.5,
+      specularIntensity: 0.5,
+      emissive: 0x000000,
+      emissiveIntensity: 0,
+      attenuationColor: 0x1E293B,
+      attenuationDistance: 1.0
+    },
+    gel: {
+      color: 0x0062FF,
+      roughness: 0.15,
+      metalness: 0.1,
+      transmission: 0.7,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.05,
+      thickness: 4.0,
+      ior: 1.33,
+      sheen: 1.0,
+      sheenRoughness: 0.2,
+      specularIntensity: 1.0,
+      emissive: 0x000000,
+      emissiveIntensity: 0,
+      attenuationColor: 0x00E5FF,
+      attenuationDistance: 0.4
+    },
+    progrip: {
+      color: 0x0F172A,
+      roughness: 0.9,
+      metalness: 0.0,
+      transmission: 0.0,
+      clearcoat: 0.1,
+      clearcoatRoughness: 0.8,
+      thickness: 1.0,
+      ior: 1.6,
+      sheen: 1.0,
+      sheenRoughness: 1.0,
+      specularIntensity: 0.2,
+      emissive: 0x000000,
+      emissiveIntensity: 0,
+      attenuationColor: 0x0F172A,
+      attenuationDistance: 1.0
+    }
+  };
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -283,53 +360,10 @@ export const OrthoticViewer3D: React.FC = () => {
     geometry.center();
     geometry.rotateX(-Math.PI / 2.5);
 
-    const presets = {
-      eva: {
-        color: 0x1E293B,
-        roughness: 0.55,
-        metalness: 0.2,
-        transmission: 0.0,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.2,
-        thickness: 0,
-        ior: 1.45,
-        sheen: 0.8,
-        sheenRoughness: 0.5,
-        specularIntensity: 0.5
-      },
-      gel: {
-        color: 0x0062FF,
-        roughness: 0.15,
-        metalness: 0.1,
-        transmission: 0.7, // High polymer translucency
-        clearcoat: 1.0,
-        clearcoatRoughness: 0.05,
-        thickness: 4.0,
-        ior: 1.33,
-        sheen: 1.0,
-        attenuationColor: new THREE.Color(0x00E5FF),
-        attenuationDistance: 0.4,
-        specularIntensity: 1.0
-      },
-      progrip: {
-        color: 0x0F172A,
-        roughness: 0.9, // High grip texture
-        metalness: 0.0,
-        transmission: 0.0,
-        clearcoat: 0.1,
-        thickness: 1.0,
-        ior: 1.6,
-        sheen: 1.0,
-        sheenColor: new THREE.Color(0x0062FF),
-        sheenRoughness: 1.0,
-        specularIntensity: 0.2
-      }
-    };
-
-    const currentPreset = presets[materialPreset];
+    const initialPreset = presets[materialPreset];
 
     const material = new THREE.MeshPhysicalMaterial({
-      ...currentPreset,
+      ...initialPreset,
       wireframe: false,
     });
 
@@ -370,6 +404,13 @@ export const OrthoticViewer3D: React.FC = () => {
 
     scene.add(insoleGroup);
 
+    // Refs for state that's accessed in animation loop to avoid effect re-runs
+    const stateRef = {
+      activeLayer,
+      materialPreset,
+      lerpSpeed: 0.08
+    };
+
     // Animation Loop
     let frameId: number;
     const animate = () => {
@@ -400,31 +441,51 @@ export const OrthoticViewer3D: React.FC = () => {
           }
       });
 
-      // Interactive focus
-      if (activeLayer === 'pressure') {
-        material.color.setHex(0x0f172a);
-        material.emissive.setHex(0xFF3D00);
-        material.emissiveIntensity = 0.2;
-        if (wireframe.material instanceof THREE.MeshBasicMaterial) {
-          wireframe.material.opacity = 0.4;
-          wireframe.material.color.setHex(0xFF3D00);
-        }
-      } else if (activeLayer === 'support') {
-        material.color.setHex(0x1e293b);
-        material.emissive.setHex(0x00E5FF);
-        material.emissiveIntensity = 0.1;
-        if (wireframe.material instanceof THREE.MeshBasicMaterial) {
-          wireframe.material.opacity = 0.3;
-          wireframe.material.color.setHex(0x00E5FF);
-        }
-      } else {
-        material.color.setHex(0x1e293b);
-        material.emissive.setHex(0x000000);
-        material.emissiveIntensity = 0;
-        if (wireframe.material instanceof THREE.MeshBasicMaterial) {
-          wireframe.material.opacity = 0.1;
-          wireframe.material.color.setHex(0x0062FF);
-        }
+      // Smooth Material Transition Logic
+      const targetPreset = (presets as any)[stateRef.materialPreset];
+      const speed = stateRef.lerpSpeed;
+
+      // Color transition
+      material.color.lerp(new THREE.Color(targetPreset.color), speed);
+      
+      // Numeric property transitions
+      material.roughness = THREE.MathUtils.lerp(material.roughness, targetPreset.roughness, speed);
+      material.metalness = THREE.MathUtils.lerp(material.metalness, targetPreset.metalness, speed);
+      material.transmission = THREE.MathUtils.lerp(material.transmission, targetPreset.transmission, speed);
+      material.clearcoat = THREE.MathUtils.lerp(material.clearcoat, targetPreset.clearcoat, speed);
+      material.clearcoatRoughness = THREE.MathUtils.lerp(material.clearcoatRoughness, targetPreset.clearcoatRoughness, speed);
+      material.thickness = THREE.MathUtils.lerp(material.thickness, targetPreset.thickness, speed);
+      material.ior = THREE.MathUtils.lerp(material.ior, targetPreset.ior, speed);
+      material.sheen = THREE.MathUtils.lerp(material.sheen, targetPreset.sheen, speed);
+      material.sheenRoughness = THREE.MathUtils.lerp(material.sheenRoughness, targetPreset.sheenRoughness, speed);
+      material.specularIntensity = THREE.MathUtils.lerp(material.specularIntensity, targetPreset.specularIntensity, speed);
+      material.attenuationDistance = THREE.MathUtils.lerp(material.attenuationDistance, targetPreset.attenuationDistance, speed);
+      material.attenuationColor.lerp(new THREE.Color(targetPreset.attenuationColor), speed);
+
+      // Layer-based emissive transitions
+      let targetEmissive = 0x000000;
+      let targetEmissiveIntensity = 0;
+      let targetWireOpacity = 0.1;
+      let targetWireColor = 0x0062FF;
+
+      if (stateRef.activeLayer === 'pressure') {
+        targetEmissive = 0xFF3D00;
+        targetEmissiveIntensity = 0.3;
+        targetWireOpacity = 0.4;
+        targetWireColor = 0xFF3D00;
+      } else if (stateRef.activeLayer === 'support') {
+        targetEmissive = 0x00E5FF;
+        targetEmissiveIntensity = 0.2;
+        targetWireOpacity = 0.3;
+        targetWireColor = 0x00E5FF;
+      }
+
+      material.emissive.lerp(new THREE.Color(targetEmissive), speed);
+      material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, targetEmissiveIntensity, speed);
+      
+      if (wireframe.material instanceof THREE.MeshBasicMaterial) {
+        wireframe.material.opacity = THREE.MathUtils.lerp(wireframe.material.opacity, targetWireOpacity, speed);
+        wireframe.material.color.lerp(new THREE.Color(targetWireColor), speed);
       }
 
       renderer.render(scene, camera);
@@ -462,6 +523,13 @@ export const OrthoticViewer3D: React.FC = () => {
     const resetButton = mountRef.current?.parentElement?.querySelector('.reset-btn');
     resetButton?.addEventListener('click', handleReset);
 
+    // Handle state updates via ref to keep animation loop current without re-running useEffect
+    const updateState = () => {
+      stateRef.activeLayer = activeLayer;
+      stateRef.materialPreset = materialPreset;
+    };
+    updateState();
+
     return () => {
       cancelAnimationFrame(frameId);
       window.removeEventListener('resize', handleResize);
@@ -477,7 +545,8 @@ export const OrthoticViewer3D: React.FC = () => {
       renderer.dispose();
       controls.dispose();
     };
-  }, [activeLayer, materialPreset, isFullscreen, selectedFootwear]);
+  }, [isFullscreen, activeLayer, materialPreset]); // Keeping activeLayer and materialPreset for ref-like updates if we want to ensure sync, but the logic is now in ref.
+
 
   return (
     <div className={`relative group transition-all duration-500 overflow-hidden ${
@@ -667,10 +736,39 @@ export const OrthoticViewer3D: React.FC = () => {
               placeholder={placeholders[placeholderIndex]}
               className="w-full h-14 md:h-20 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-[10px] text-clinic-navy placeholder:text-slate-400 focus:outline-none focus:border-clinic-blue/40 transition-all resize-none font-medium leading-relaxed"
             />
+            <AnimatePresence>
+              {aiAnalysis && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute bottom-full left-0 right-0 mb-4 bg-clinic-navy text-white p-4 rounded-2xl text-[9px] font-medium leading-relaxed border border-white/10 shadow-2xl z-50"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-clinic-cyan font-black uppercase tracking-widest">EZStep AI Verdict</span>
+                  </div>
+                  <div className="prose prose-invert prose-xs max-h-40 overflow-y-auto scrollbar-hide">
+                    {aiAnalysis}
+                  </div>
+                  <button 
+                    onClick={() => setAiAnalysis(null)}
+                    className="mt-3 w-full py-2 bg-white/5 border border-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                  >
+                    Clear Result
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Multi-Lang Engine 2.0</span>
-            <button className="text-[7px] font-black text-clinic-blue uppercase tracking-widest hover:underline px-2 py-1 bg-clinic-blue/5 rounded">Submit Analysis</button>
+            <button 
+              onClick={handleAiAnalysis}
+              disabled={isAnalyzing || !painDescription.trim()}
+              className="text-[7px] font-black text-clinic-blue uppercase tracking-widest hover:underline px-2 py-1 bg-clinic-blue/5 rounded disabled:opacity-50 flex items-center gap-2"
+            >
+              {isAnalyzing && <Loader2 className="w-2 h-2 animate-spin" />}
+              Submit Analysis
+            </button>
           </div>
         </motion.div>
       </div>

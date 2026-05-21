@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, MapPin, Clock, Phone, Navigation, ExternalLink } from 'lucide-react';
+import { X, MapPin, Clock, Phone, Navigation, ExternalLink, Loader2 } from 'lucide-react';
 
 interface Branch {
   name: string;
@@ -17,10 +17,21 @@ interface Branch {
 interface BranchModalProps {
   branch: Branch | null;
   onClose: () => void;
+  onBook: (branch: Branch) => void;
 }
 
-export const BranchModal: React.FC<BranchModalProps> = ({ branch, onClose }) => {
+export const BranchModal: React.FC<BranchModalProps> = ({ branch, onClose, onBook }) => {
+  const [isBooking, setIsBooking] = useState(false);
+
   if (!branch) return null;
+
+  const handleBook = async () => {
+    setIsBooking(true);
+    // Simulate a brief analysis/sync before opening the booking modal
+    await new Promise(resolve => setTimeout(resolve, 800));
+    onBook(branch);
+    setIsBooking(false);
+  };
 
   return (
     <AnimatePresence>
@@ -102,19 +113,20 @@ export const BranchModal: React.FC<BranchModalProps> = ({ branch, onClose }) => 
 
             <div className="space-y-6 pt-4 border-t border-slate-100">
                <div className="flex flex-col gap-4">
-                 <a 
-                   href={SOCIALS_FALLBACK.facebook} 
-                   target="_blank" 
-                   rel="noopener noreferrer"
+                 <motion.button 
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isBooking}
+                  onClick={handleBook}
+                  className="w-full bg-clinic-navy text-white text-[11px] font-black uppercase tracking-[0.2em] py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl hover:bg-clinic-blue transition-colors disabled:opacity-50"
                  >
-                   <motion.button 
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-clinic-navy text-white text-[11px] font-black uppercase tracking-[0.2em] py-5 rounded-2xl flex items-center justify-center gap-3 shadow-xl hover:bg-clinic-blue transition-colors"
-                   >
-                     <Navigation className="w-4 h-4" /> Book Assessment Now
-                   </motion.button>
-                 </a>
+                   {isBooking ? (
+                     <Loader2 className="w-4 h-4 animate-spin text-clinic-cyan" />
+                   ) : (
+                     <Navigation className="w-4 h-4" />
+                   )}
+                   {isBooking ? 'Analyzing Availability...' : 'Book Assessment Now'}
+                 </motion.button>
                  <div className="flex gap-4">
                     <button 
                       className="flex-1 border-2 border-slate-100 text-slate-500 text-[10px] font-bold uppercase tracking-widest py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"

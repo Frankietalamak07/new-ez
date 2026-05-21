@@ -49,3 +49,27 @@
 .animate-bar-pulse {
   animation: barPulse 1.5s ease-in-out infinite;
 }
+
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-body li {
+  margin-bottom: 0.5rem;
+}
+
+.chat-markdown p {
+  margin-bottom: 1rem;
+}
+
+.chat-markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-markdown ul {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}

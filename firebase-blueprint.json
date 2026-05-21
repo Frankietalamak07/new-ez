@@ -1,0 +1,83 @@
+{
+  "entities": {
+    "booking": {
+      "title": "Booking",
+      "description": "An appointment for an in-person assessment",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user who booked" },
+        "clinicId": { "type": "string", "description": "ID of the clinic location" },
+        "clinicName": { "type": "string", "description": "Name of the clinic" },
+        "date": { "type": "string", "format": "date", "description": "ISO date string (YYYY-MM-DD)" },
+        "timeSlot": { "type": "string", "description": "Selected time slot (e.g., '10:00 AM')" },
+        "customerName": { "type": "string", "description": "Full name of the customer" },
+        "customerEmail": { "type": "string", "description": "Email of the customer" },
+        "customerPhone": { "type": "string", "description": "Phone number of the customer" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"], "description": "Status of the booking" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the booking was created" }
+      },
+      "required": ["clinicId", "date", "timeSlot", "customerName", "customerEmail", "customerPhone"]
+    },
+    "clinic": {
+      "title": "Clinic",
+      "description": "Clinic location details and availability config",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "type": "string" },
+        "operatingHours": { "type": "string" },
+        "enabled": { "type": "boolean" }
+      },
+      "required": ["name", "address"]
+    },
+    "prescription": {
+      "title": "Prescription",
+      "description": "Details of the insole fabrication for a specific patient/booking",
+      "type": "object",
+      "properties": {
+        "bookingId": { "type": "string", "description": "Reference to the original booking" },
+        "userId": { "type": "string", "description": "UID of the patient" },
+        "materials": { "type": "array", "items": { "type": "string" }, "description": "List of materials used" },
+        "modifications": { "type": "array", "items": { "type": "string" }, "description": "Specific biomechanical adjustments" },
+        "maintenance": { "type": "string", "description": "Recommended cleaning and care instructions" },
+        "wearSchedule": { "type": "string", "description": "Break-in period instructions" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["bookingId", "userId", "materials", "maintenance"]
+    },
+    "insight": {
+      "title": "Insight",
+      "description": "Clinical research or technical guide for the knowledge base",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "readTime": { "type": "string" },
+        "image": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "excerpt", "image"]
+    }
+  },
+  "firestore": {
+    "bookings/{bookingId}": {
+      "schema": "booking",
+      "description": "Appointments for foot scans"
+    },
+    "clinics/{clinicId}": {
+      "schema": "clinic",
+      "description": "Clinic locations metadata"
+    },
+    "prescriptions/{prescriptionId}": {
+      "schema": "prescription",
+      "description": "Insole manufacturing details"
+    },
+    "insights/{insightId}": {
+      "schema": "insight",
+      "description": "Educational content and clinical guides"
+    }
+  }
+}
